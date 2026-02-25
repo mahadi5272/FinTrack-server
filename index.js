@@ -70,61 +70,61 @@ async function run() {
     });
 
     // // user
-    // app.post("/users", async (req, res) => {
-    //   try {
-    //     const user = req.body;
-    //     const result = await usercoll.insertOne(user);
-    //     res.send(result);
-    //   } catch (err) {
-    //     console.log(err);
-    //     res.status(500).send({ massage: "intarnal server error" });
-    //   }
-    // });
-    // app.get("/users", async (req, res) => {
-    //   try {
-    //     const cursor = usercoll.find();
-    //     const result = await cursor.toArray();
-    //     res.send(result);
-    //   } catch (err) {
-    //     console.log(err);
-    //   }
-    // });
-    // // ইউজারের রোল পরিবর্তন করার এপিআই (Admin/User toggle)
-    // app.patch("/users/role/:id", async (req, res) => {
-    //   try {
-    //     const id = req.params.id;
-    //     const { role } = req.body; // ফ্রন্টএন্ড থেকে নতুন রোল পাঠানো হবে
-    //     const filter = { _id: new ObjectId(id) };
-    //     const updateDoc = {
-    //       $set: { role: role },
-    //     };
-    //     const result = await usercoll.updateOne(filter, updateDoc);
-    //     res.send(result);
-    //   } catch (err) {
-    //     console.log(err);
-    //     res.status(500).send({ message: "Role update failed" });
-    //   }
-    // });
-    // app.get("/users/:email", async (req, res) => {
-    //   try {
-    //     const email = req.params.email;
-    //     const query = { email: email };
-    //     const user = await usercoll.findOne(query);
-    //     res.send(user);
-    //   } catch (err) {
-    //     console.log(err);
-    //   }
-    // });
-    // app.delete("/users/:id", async (req, res) => {
-    //   try {
-    //     const id = req.params.id;
-    //     const query = { _id: new ObjectId(id) };
-    //     const result = await usercoll.deleteOne(query);
-    //     res.send(result);
-    //   } catch (err) {
-    //     console.log(err);
-    //   }
-    // });
+    app.post("/users", async (req, res) => {
+      try {
+        const user = req.body;
+        const result = await usercoll.insertOne(user);
+        res.send(result);
+      } catch (err) {
+        console.log(err);
+        res.status(500).send({ massage: "intarnal server error" });
+      }
+    });
+    app.get("/users", async (req, res) => {
+      try {
+        const cursor = usercoll.find();
+        const result = await cursor.toArray();
+        res.send(result);
+      } catch (err) {
+        console.log(err);
+      }
+    });
+    // ইউজারের রোল পরিবর্তন করার এপিআই (Admin/User toggle)
+    app.patch("/users/role/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const { role } = req.body; // ফ্রন্টএন্ড থেকে নতুন রোল পাঠানো হবে
+        const filter = { _id: new ObjectId(id) };
+        const updateDoc = {
+          $set: { role: role },
+        };
+        const result = await usercoll.updateOne(filter, updateDoc);
+        res.send(result);
+      } catch (err) {
+        console.log(err);
+        res.status(500).send({ message: "Role update failed" });
+      }
+    });
+    app.get("/users/:email", async (req, res) => {
+      try {
+        const email = req.params.email;
+        const query = { email: email };
+        const user = await usercoll.findOne(query);
+        res.send(user);
+      } catch (err) {
+        console.log(err);
+      }
+    });
+    app.delete("/users/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+        const result = await usercoll.deleteOne(query);
+        res.send(result);
+      } catch (err) {
+        console.log(err);
+      }
+    });
 
     // // goal
     // // গোল সেভ করার এপিআই
