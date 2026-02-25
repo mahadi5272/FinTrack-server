@@ -276,20 +276,20 @@ async function run() {
     //   }
     // });
     // // ট্রানজ্যাকশন ডিলিট করার এপিআই
-    // app.delete("/transactions/:id", async (req, res) => {
-    //   try {
-    //     const id = req.params.id;
-    //     const query = { _id: new ObjectId(id) };
+    app.delete("/transactions/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
 
-    //     // অবশ্যই 'transactionscoll' ব্যবহার করবেন
-    //     const result = await transactionscoll.deleteOne(query);
+        // অবশ্যই 'transactionscoll' ব্যবহার করবেন
+        const result = await transactionscoll.deleteOne(query);
 
-    //     res.send(result);
-    //   } catch (err) {
-    //     console.error(err);
-    //     res.status(500).send({ message: "Delete failed" });
-    //   }
-    // });
+        res.send(result);
+      } catch (err) {
+        console.error(err);
+        res.status(500).send({ message: "Delete failed" });
+      }
+    });
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
