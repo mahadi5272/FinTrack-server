@@ -148,11 +148,11 @@ async function run() {
 
     // // tips
     // // অ্যাডমিন টিপস সেভ করার এপিআই
-    // app.post("/financial-tips", async (req, res) => {
-    //   const tip = req.body;
-    //   const result = await tipscoll.insertOne(tip); // আপনার ডিফাইন করা tipscoll
-    //   res.send(result);
-    // });
+    app.post("/financial-tips", async (req, res) => {
+      const tip = req.body;
+      const result = await tipscoll.insertOne(tip); // আপনার ডিফাইন করা tipscoll
+      res.send(result);
+    });
 
     // // সব টিপস গেট করার এপিআই
     // app.get("/financial-tips", async (req, res) => {
