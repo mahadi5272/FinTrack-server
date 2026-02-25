@@ -1,20 +1,31 @@
+// ১. DNS সেটিংস (শুধুমাত্র লোকাল হোস্টে কাজ করবে)
+if (process.env.NODE_ENV !== 'production') {
+  const dns = require("node:dns");
+  dns.setServers(["8.8.8.8", "8.8.4.4"]);
+}
+
 require("dotenv").config();
-const dns = require("node:dns");
-// Google DNS সার্ভার সেট করা হচ্ছে
-dns.setServers(["8.8.8.8", "8.8.4.4"]);
 const express = require("express");
 const cors = require("cors");
-const app = express();
-const port = 3000;
-// mongo
+const jwt = require("jsonwebtoken");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
-const uri = process.env.mongoUri;
 
-// MiddeleWear
+const app = express();
+// রেন্ডার অটোমেটিক পোর্ট সেট করবে, না থাকলে ৫০০৫ ব্যবহার হবে
+const port = process.env.PORT || 5005; 
+
+// Middleware
 app.use(cors());
 app.use(express.json());
 
-// Create a MongoClient with a MongoClientOptions object to set the Stable API version
+// MongoDB Connection
+const uri = process.env.MONGO_URI;
+
+// ইউআরএল চেক (সেফটি মেজার)
+if (!uri) {
+  console.error("Error: MONGO_URI is not defined in environment variables!");
+}
+
 const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
@@ -23,286 +34,200 @@ const client = new MongoClient(uri, {
   },
 });
 
-app.get("/", (req, res) => {
-  res.send("Hello World for mahadi!");
-});
+// --- JWT Middleware ---
+const verifyToken = (req, res, next) => {
+  if (!req.headers.authorization) {
+    return res.status(401).send({ message: "unauthorized access" });
+  }
+  const token = req.headers.authorization.split(" ")[1];
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+    if (err) {
+      return res.status(401).send({ message: "unauthorized access" });
+    }
+    req.decoded = decoded;
+    next();
+  });
+};
 
 async function run() {
   try {
+    // ডাটাবেস এবং কালেকশন কানেকশন
     const DB = client.db("fintack");
-    const usercoll = DB.collection("users"); // Stores user information and roles (Admin/User)
-    const transactionscoll = DB.collection("transactions"); // Stores both income and expense records
-    const categoriescoll = DB.collection("categories"); // Stores financial categories managed by Admin
-    const goalscoll = DB.collection("savingsgoals"); // Stores users' savings goals and progress
-    const tipscoll = DB.collection("financialtips"); // Stores financial tips and insights managed by Admin
-    app.get("/admin-stats", async (req, res) => {
-      const users = await usercoll.estimatedDocumentCount();
-      const transactions = await transactionscoll.estimatedDocumentCount();
+    const usercoll = DB.collection("users");
+    const transactionscoll = DB.collection("transactions");
+    const categoriescoll = DB.collection("categories");
+    const goalscoll = DB.collection("savingsgoals");
+    const tipscoll = DB.collection("financialtips");
 
-      // সব ইউজারের মোট আয় এবং ব্যয় বের করা
-      const allTransactions = await transactionscoll.find().toArray();
-      const totalRevenue = allTransactions
-        .filter((t) => t.type === "income")
-        .reduce((sum, t) => sum + parseFloat(t.amount), 0);
-
-      res.send({
-        totalUsers: users,
-        totalTransactions: transactions,
-        totalRevenue,
-      });
-    });
-    // Admin Moderation: Delete any transaction
-    app.delete("/admin/transactions/:id", async (req, res) => {
-      try {
-        const id = req.params.id;
-        const query = { _id: new ObjectId(id) };
-        const result = await transactionscoll.deleteOne(query);
-        res.send(result);
-      } catch (err) {
-        res.status(500).send({ message: "Moderation failed" });
+    // --- Admin Verification Middleware ---
+    const verifyAdmin = async (req, res, next) => {
+      const email = req.decoded.email;
+      const query = { email: email };
+      const user = await usercoll.findOne(query);
+      const isAdmin = user?.role === "admin";
+      if (!isAdmin) {
+        return res.status(403).send({ message: "forbidden access" });
       }
+      next();
+    };
+
+    // --- Authentication (JWT Generation) ---
+    app.post("/jwt", async (req, res) => {
+      const user = req.body;
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
+        expiresIn: "1h",
+      });
+      res.send({ token });
     });
 
-    // Admin Moderation: Get all transactions for review
-    app.get("/admin/all-transactions", async (req, res) => {
-      const result = await transactionscoll.find().sort({ date: -1 }).toArray();
-      res.send(result);
-    });
-
-    // // user
+    // --- User Management ---
     app.post("/users", async (req, res) => {
-      try {
-        const user = req.body;
-        const result = await usercoll.insertOne(user);
-        res.send(result);
-      } catch (err) {
-        console.log(err);
-        res.status(500).send({ massage: "intarnal server error" });
-      }
+      const user = req.body;
+      const query = { email: user.email };
+      const existingUser = await usercoll.findOne(query);
+      if (existingUser) return res.send({ message: "user already exists" });
+      const result = await usercoll.insertOne(user);
+      res.send(result);
     });
-    app.get("/users", async (req, res) => {
+
+    app.get("/users-all", verifyToken, verifyAdmin, async (req, res) => {
       try {
-        const cursor = usercoll.find();
-        const result = await cursor.toArray();
+        const result = await usercoll.find().toArray();
         res.send(result);
-      } catch (err) {
-        console.log(err);
-      }
-    });
-    // ইউজারের রোল পরিবর্তন করার এপিআই (Admin/User toggle)
-    app.patch("/users/role/:id", async (req, res) => {
-      try {
-        const id = req.params.id;
-        const { role } = req.body; // ফ্রন্টএন্ড থেকে নতুন রোল পাঠানো হবে
-        const filter = { _id: new ObjectId(id) };
-        const updateDoc = {
-          $set: { role: role },
-        };
-        const result = await usercoll.updateOne(filter, updateDoc);
-        res.send(result);
-      } catch (err) {
-        console.log(err);
-        res.status(500).send({ message: "Role update failed" });
-      }
-    });
-    app.get("/users/:email", async (req, res) => {
-      try {
-        const email = req.params.email;
-        const query = { email: email };
-        const user = await usercoll.findOne(query);
-        res.send(user);
-      } catch (err) {
-        console.log(err);
-      }
-    });
-    app.delete("/users/:id", async (req, res) => {
-      try {
-        const id = req.params.id;
-        const query = { _id: new ObjectId(id) };
-        const result = await usercoll.deleteOne(query);
-        res.send(result);
-      } catch (err) {
-        console.log(err);
+      } catch (error) {
+        res.status(500).send({ message: "Internal Server Error" });
       }
     });
 
-    // // goal
-    // // গোল সেভ করার এপিআই
-    app.post("/savings-goal", async (req, res) => {
-      const goal = req.body;
-      const query = { userEmail: goal.userEmail };
-      const updateDoc = { $set: goal };
-      const result = await goalscoll.updateOne(query, updateDoc, {
-        upsert: true,
+    app.get("/users/:email", verifyToken, async (req, res) => {
+      const user = await usercoll.findOne({ email: req.params.email });
+      res.send(user);
+    });
+
+    app.patch("/users/role/:id", verifyToken, verifyAdmin, async (req, res) => {
+      const id = req.params.id;
+      const { role } = req.body;
+      const filter = { _id: new ObjectId(id) };
+      const result = await usercoll.updateOne(filter, { $set: { role: role } });
+      res.send(result);
+    });
+
+    // --- Transaction Management ---
+    app.post("/transactions", verifyToken, async (req, res) => {
+      const transaction = req.body;
+      if (transaction.userEmail !== req.decoded.email) {
+        return res.status(403).send({ message: "forbidden access" });
+      }
+      const result = await transactionscoll.insertOne(transaction);
+      res.send(result);
+    });
+
+    app.get("/transactions/:email", verifyToken, async (req, res) => {
+      const email = req.params.email;
+      if (email !== req.decoded.email) {
+        return res.status(403).send({ message: "forbidden access" });
+      }
+      const result = await transactionscoll
+        .find({ userEmail: email })
+        .sort({ date: -1 })
+        .toArray();
+      res.send(result);
+    });
+
+    app.delete("/transactions/:id", verifyToken, async (req, res) => {
+      const result = await transactionscoll.deleteOne({
+        _id: new ObjectId(req.params.id),
       });
       res.send(result);
     });
 
-    // // গোল রিড করার এপিআই
-    app.get("/savings-goal/:email", async (req, res) => {
-      const result = await goalscoll.findOne({
-        userEmail: req.params.email,
-      });
-      res.send(result);
-    });
-
-    // // tips
-    // // অ্যাডমিন টিপস সেভ করার এপিআই
-    app.post("/financial-tips", async (req, res) => {
-      const tip = req.body;
-      const result = await tipscoll.insertOne(tip); // আপনার ডিফাইন করা tipscoll
-      res.send(result);
-    });
-
-    // // সব টিপস গেট করার এপিআই
+    // --- Financial Tips ---
     app.get("/financial-tips", async (req, res) => {
       const result = await tipscoll.find().toArray();
       res.send(result);
     });
 
-    // // categories
-    // // --- Category Management (Admin - 7.2) ---
-
-    // // নতুন ক্যাটাগরি সেভ করা
-    app.post("/categories", async (req, res) => {
-      const category = req.body;
-      const result = await categoriescoll.insertOne(category);
+    app.post("/financial-tips", verifyToken, verifyAdmin, async (req, res) => {
+      const result = await tipscoll.insertOne(req.body);
       res.send(result);
     });
 
-    // // সব ক্যাটাগরি গেট করা (ড্রপডাউনের জন্য)
+    // --- Category Management ---
+    app.post("/categories", verifyToken, verifyAdmin, async (req, res) => {
+      const result = await categoriescoll.insertOne(req.body);
+      res.send(result);
+    });
+
     app.get("/categories", async (req, res) => {
       const result = await categoriescoll.find().toArray();
       res.send(result);
     });
-    // // ২. ক্যাটাগরি ডিলিট করা (Delete)
-    app.delete("/categories/:id", async (req, res) => {
-      try {
-        const id = req.params.id;
-        const query = { _id: new ObjectId(id) };
-        const result = await categoriescoll.deleteOne(query);
-        res.send(result);
-      } catch (err) {
-        res.status(500).send({ message: "Delete failed" });
-      }
-    });
-    // // ৩. ক্যাটাগরি এডিট/আপডেট করা (Update)
-    app.patch("/categories/:id", async (req, res) => {
-      try {
-        const id = req.params.id;
-        const { name } = req.body;
-        const filter = { _id: new ObjectId(id) };
-        const updateDoc = {
-          $set: { name: name },
-        };
-        const result = await categoriescoll.updateOne(filter, updateDoc);
-        res.send(result);
-      } catch (err) {
-        res.status(500).send({ message: "Update failed" });
-      }
-    });
 
-    // // --- Transaction Management (User - 7.1) ---
-
-    // // নতুন লেনদেন সেভ করা
-    app.post("/transactions", async (req, res) => {
-      const transaction = req.body;
-      const result = await transactionscoll.insertOne(transaction);
-      res.send(result);
-    });
-
-    // // নির্দিষ্ট ইউজারের সব লেনদেন দেখা (সেকশন ৭.৪ ফিল্টারিংয়ের ভিত্তি)
-    app.get("/transactions/:email", async (req, res) => {
+    // --- Financial Stats & Dashboard ---
+    app.get("/user-stats/:email", verifyToken, async (req, res) => {
       const email = req.params.email;
-      const query = { userEmail: email };
-      const result = await transactionscoll
-        .find(query)
-        .sort({ date: -1 })
+      if (email !== req.decoded.email) {
+        return res.status(403).send({ message: "forbidden access" });
+      }
+      const transactions = await transactionscoll
+        .find({ userEmail: email })
         .toArray();
+      let totalIncome = 0;
+      let totalExpense = 0;
+      transactions.forEach((t) => {
+        const amount = parseFloat(t.amount || 0);
+        t.type === "income"
+          ? (totalIncome += amount)
+          : (totalExpense += amount);
+      });
+      res.send({
+        totalIncome,
+        totalExpense,
+        balance: totalIncome - totalExpense,
+      });
+    });
+
+    app.get("/admin-stats", verifyToken, verifyAdmin, async (req, res) => {
+      const users = await usercoll.estimatedDocumentCount();
+      const transactions = await transactionscoll.estimatedDocumentCount();
+      res.send({ totalUsers: users, totalTransactions: transactions });
+    });
+
+    // --- Savings Goal ---
+    app.post("/savings-goal", verifyToken, async (req, res) => {
+      const goal = req.body;
+      const query = { userEmail: goal.userEmail };
+      const result = await goalscoll.updateOne(
+        query,
+        { $set: goal },
+        { upsert: true },
+      );
       res.send(result);
     });
-    // // ট্রানজ্যাকশন এডিট/আপডেট করার এপিআই
-    app.patch("/transactions/:id", async (req, res) => {
-      try {
-        const id = req.params.id;
-        const updatedData = req.body;
-        const filter = { _id: new ObjectId(id) };
-        const updateDoc = {
-          $set: {
-            amount: parseFloat(updatedData.amount),
-            type: updatedData.type,
-            category: updatedData.category,
-            date: updatedData.date,
-            note: updatedData.note,
-          },
-        };
-        const result = await transactionscoll.updateOne(filter, updateDoc);
-        res.send(result);
-      } catch (err) {
-        res.status(500).send({ message: "Update failed" });
+
+    app.get("/savings-goal/:email", verifyToken, async (req, res) => {
+      const email = req.params.email;
+      if (email !== req.decoded.email) {
+        return res.status(403).send({ message: "forbidden access" });
       }
-    });
-    // // ইউজারের আর্থিক পরিসংখ্যান (Total Income, Expense, Balance)
-    app.get("/user-stats/:email", async (req, res) => {
-      try {
-        const email = req.params.email;
-        const query = { userEmail: email };
-
-        // ইউজারের সব ট্রানজ্যাকশন নিয়ে আসা
-        const transactions = await transactionscoll.find(query).toArray();
-
-        let totalIncome = 0;
-        let totalExpense = 0;
-
-        // লুপ চালিয়ে ইনকাম এবং এক্সপেন্স আলাদা করা
-        transactions.forEach((t) => {
-          if (t.type === "income") {
-            totalIncome += parseFloat(t.amount);
-          } else if (t.type === "expense") {
-            totalExpense += parseFloat(t.amount);
-          }
-        });
-
-        // ফ্রন্টএন্ডে পাঠানোর জন্য অবজেক্ট তৈরি
-        res.send({
-          totalIncome,
-          totalExpense,
-          balance: totalIncome - totalExpense,
-          totalTransactions: transactions.length,
-        });
-      } catch (err) {
-        console.log(err);
-        res.status(500).send({ message: "Error calculating stats" });
-      }
-    });
-    // // ট্রানজ্যাকশন ডিলিট করার এপিআই
-    app.delete("/transactions/:id", async (req, res) => {
-      try {
-        const id = req.params.id;
-        const query = { _id: new ObjectId(id) };
-
-        // অবশ্যই 'transactionscoll' ব্যবহার করবেন
-        const result = await transactionscoll.deleteOne(query);
-
-        res.send(result);
-      } catch (err) {
-        console.error(err);
-        res.status(500).send({ message: "Delete failed" });
-      }
+      const query = { userEmail: email };
+      const result = await goalscoll.findOne(query);
+      if (!result) return res.send({});
+      res.send(result);
     });
 
-    // Send a ping to confirm a successful connection
+    // MongoDB Ping
     await client.db("admin").command({ ping: 1 });
-    console.log(
-      "Pinged your deployment. You successfully connected to MongoDB!",
-    );
-  } finally {
-    // Ensures that the client will close when you finish/error
-    // await client.close();
+    console.log("Connected to MongoDB!");
+
+  } catch (error) {
+    console.error("Database connection error:", error);
   }
 }
 run().catch(console.dir);
 
+app.get("/", (req, res) => res.send("FinTrack Server is Running!"));
+
 app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`);
+  console.log(`Server is running on port ${port}`);
 });
