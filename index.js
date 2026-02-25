@@ -35,39 +35,39 @@ async function run() {
     const categoriescoll = DB.collection("categories"); // Stores financial categories managed by Admin
     const goalscoll = DB.collection("savingsgoals"); // Stores users' savings goals and progress
     const tipscoll = DB.collection("financialtips"); // Stores financial tips and insights managed by Admin
-    // app.get("/admin-stats", async (req, res) => {
-    //   const users = await usercoll.estimatedDocumentCount();
-    //   const transactions = await transactionscoll.estimatedDocumentCount();
+    app.get("/admin-stats", async (req, res) => {
+      const users = await usercoll.estimatedDocumentCount();
+      const transactions = await transactionscoll.estimatedDocumentCount();
 
-    //   // সব ইউজারের মোট আয় এবং ব্যয় বের করা
-    //   const allTransactions = await transactionscoll.find().toArray();
-    //   const totalRevenue = allTransactions
-    //     .filter((t) => t.type === "income")
-    //     .reduce((sum, t) => sum + parseFloat(t.amount), 0);
+      // সব ইউজারের মোট আয় এবং ব্যয় বের করা
+      const allTransactions = await transactionscoll.find().toArray();
+      const totalRevenue = allTransactions
+        .filter((t) => t.type === "income")
+        .reduce((sum, t) => sum + parseFloat(t.amount), 0);
 
-    //   res.send({
-    //     totalUsers: users,
-    //     totalTransactions: transactions,
-    //     totalRevenue,
-    //   });
-    // });
-    // // Admin Moderation: Delete any transaction
-    // app.delete("/admin/transactions/:id", async (req, res) => {
-    //   try {
-    //     const id = req.params.id;
-    //     const query = { _id: new ObjectId(id) };
-    //     const result = await transactionscoll.deleteOne(query);
-    //     res.send(result);
-    //   } catch (err) {
-    //     res.status(500).send({ message: "Moderation failed" });
-    //   }
-    // });
+      res.send({
+        totalUsers: users,
+        totalTransactions: transactions,
+        totalRevenue,
+      });
+    });
+    // Admin Moderation: Delete any transaction
+    app.delete("/admin/transactions/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+        const result = await transactionscoll.deleteOne(query);
+        res.send(result);
+      } catch (err) {
+        res.status(500).send({ message: "Moderation failed" });
+      }
+    });
 
-    // // Admin Moderation: Get all transactions for review
-    // app.get("/admin/all-transactions", async (req, res) => {
-    //   const result = await transactionscoll.find().sort({ date: -1 }).toArray();
-    //   res.send(result);
-    // });
+    // Admin Moderation: Get all transactions for review
+    app.get("/admin/all-transactions", async (req, res) => {
+      const result = await transactionscoll.find().sort({ date: -1 }).toArray();
+      res.send(result);
+    });
 
     // // user
     // app.post("/users", async (req, res) => {
