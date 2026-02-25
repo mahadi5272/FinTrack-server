@@ -243,38 +243,38 @@ async function run() {
     //   }
     // });
     // // ইউজারের আর্থিক পরিসংখ্যান (Total Income, Expense, Balance)
-    // app.get("/user-stats/:email", async (req, res) => {
-    //   try {
-    //     const email = req.params.email;
-    //     const query = { userEmail: email };
+    app.get("/user-stats/:email", async (req, res) => {
+      try {
+        const email = req.params.email;
+        const query = { userEmail: email };
 
-    //     // ইউজারের সব ট্রানজ্যাকশন নিয়ে আসা
-    //     const transactions = await transactionscoll.find(query).toArray();
+        // ইউজারের সব ট্রানজ্যাকশন নিয়ে আসা
+        const transactions = await transactionscoll.find(query).toArray();
 
-    //     let totalIncome = 0;
-    //     let totalExpense = 0;
+        let totalIncome = 0;
+        let totalExpense = 0;
 
-    //     // লুপ চালিয়ে ইনকাম এবং এক্সপেন্স আলাদা করা
-    //     transactions.forEach((t) => {
-    //       if (t.type === "income") {
-    //         totalIncome += parseFloat(t.amount);
-    //       } else if (t.type === "expense") {
-    //         totalExpense += parseFloat(t.amount);
-    //       }
-    //     });
+        // লুপ চালিয়ে ইনকাম এবং এক্সপেন্স আলাদা করা
+        transactions.forEach((t) => {
+          if (t.type === "income") {
+            totalIncome += parseFloat(t.amount);
+          } else if (t.type === "expense") {
+            totalExpense += parseFloat(t.amount);
+          }
+        });
 
-    //     // ফ্রন্টএন্ডে পাঠানোর জন্য অবজেক্ট তৈরি
-    //     res.send({
-    //       totalIncome,
-    //       totalExpense,
-    //       balance: totalIncome - totalExpense,
-    //       totalTransactions: transactions.length,
-    //     });
-    //   } catch (err) {
-    //     console.log(err);
-    //     res.status(500).send({ message: "Error calculating stats" });
-    //   }
-    // });
+        // ফ্রন্টএন্ডে পাঠানোর জন্য অবজেক্ট তৈরি
+        res.send({
+          totalIncome,
+          totalExpense,
+          balance: totalIncome - totalExpense,
+          totalTransactions: transactions.length,
+        });
+      } catch (err) {
+        console.log(err);
+        res.status(500).send({ message: "Error calculating stats" });
+      }
+    });
     // // ট্রানজ্যাকশন ডিলিট করার এপিআই
     app.delete("/transactions/:id", async (req, res) => {
       try {
