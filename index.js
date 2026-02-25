@@ -155,10 +155,10 @@ async function run() {
     });
 
     // // সব টিপস গেট করার এপিআই
-    // app.get("/financial-tips", async (req, res) => {
-    //   const result = await tipscoll.find().toArray();
-    //   res.send(result);
-    // });
+    app.get("/financial-tips", async (req, res) => {
+      const result = await tipscoll.find().toArray();
+      res.send(result);
+    });
 
     // // categories
     // // --- Category Management (Admin - 7.2) ---
