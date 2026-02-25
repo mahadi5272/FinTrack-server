@@ -205,11 +205,11 @@ async function run() {
     // // --- Transaction Management (User - 7.1) ---
 
     // // নতুন লেনদেন সেভ করা
-    // app.post("/transactions", async (req, res) => {
-    //   const transaction = req.body;
-    //   const result = await transactionscoll.insertOne(transaction);
-    //   res.send(result);
-    // });
+    app.post("/transactions", async (req, res) => {
+      const transaction = req.body;
+      const result = await transactionscoll.insertOne(transaction);
+      res.send(result);
+    });
 
     // // নির্দিষ্ট ইউজারের সব লেনদেন দেখা (সেকশন ৭.৪ ফিল্টারিংয়ের ভিত্তি)
     // app.get("/transactions/:email", async (req, res) => {
