@@ -164,43 +164,43 @@ async function run() {
     // // --- Category Management (Admin - 7.2) ---
 
     // // নতুন ক্যাটাগরি সেভ করা
-    // app.post("/categories", async (req, res) => {
-    //   const category = req.body;
-    //   const result = await categoriescoll.insertOne(category);
-    //   res.send(result);
-    // });
+    app.post("/categories", async (req, res) => {
+      const category = req.body;
+      const result = await categoriescoll.insertOne(category);
+      res.send(result);
+    });
 
     // // সব ক্যাটাগরি গেট করা (ড্রপডাউনের জন্য)
-    // app.get("/categories", async (req, res) => {
-    //   const result = await categoriescoll.find().toArray();
-    //   res.send(result);
-    // });
+    app.get("/categories", async (req, res) => {
+      const result = await categoriescoll.find().toArray();
+      res.send(result);
+    });
     // // ২. ক্যাটাগরি ডিলিট করা (Delete)
-    // app.delete("/categories/:id", async (req, res) => {
-    //   try {
-    //     const id = req.params.id;
-    //     const query = { _id: new ObjectId(id) };
-    //     const result = await categoriescoll.deleteOne(query);
-    //     res.send(result);
-    //   } catch (err) {
-    //     res.status(500).send({ message: "Delete failed" });
-    //   }
-    // });
+    app.delete("/categories/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+        const result = await categoriescoll.deleteOne(query);
+        res.send(result);
+      } catch (err) {
+        res.status(500).send({ message: "Delete failed" });
+      }
+    });
     // // ৩. ক্যাটাগরি এডিট/আপডেট করা (Update)
-    // app.patch("/categories/:id", async (req, res) => {
-    //   try {
-    //     const id = req.params.id;
-    //     const { name } = req.body;
-    //     const filter = { _id: new ObjectId(id) };
-    //     const updateDoc = {
-    //       $set: { name: name },
-    //     };
-    //     const result = await categoriescoll.updateOne(filter, updateDoc);
-    //     res.send(result);
-    //   } catch (err) {
-    //     res.status(500).send({ message: "Update failed" });
-    //   }
-    // });
+    app.patch("/categories/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const { name } = req.body;
+        const filter = { _id: new ObjectId(id) };
+        const updateDoc = {
+          $set: { name: name },
+        };
+        const result = await categoriescoll.updateOne(filter, updateDoc);
+        res.send(result);
+      } catch (err) {
+        res.status(500).send({ message: "Update failed" });
+      }
+    });
 
     // // --- Transaction Management (User - 7.1) ---
 
