@@ -128,15 +128,15 @@ async function run() {
 
     // // goal
     // // গোল সেভ করার এপিআই
-    // app.post("/savings-goal", async (req, res) => {
-    //   const goal = req.body;
-    //   const query = { userEmail: goal.userEmail };
-    //   const updateDoc = { $set: goal };
-    //   const result = await goalscoll.updateOne(query, updateDoc, {
-    //     upsert: true,
-    //   });
-    //   res.send(result);
-    // });
+    app.post("/savings-goal", async (req, res) => {
+      const goal = req.body;
+      const query = { userEmail: goal.userEmail };
+      const updateDoc = { $set: goal };
+      const result = await goalscoll.updateOne(query, updateDoc, {
+        upsert: true,
+      });
+      res.send(result);
+    });
 
     // // গোল রিড করার এপিআই
     // app.get("/savings-goal/:email", async (req, res) => {
