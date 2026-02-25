@@ -139,12 +139,12 @@ async function run() {
     });
 
     // // গোল রিড করার এপিআই
-    // app.get("/savings-goal/:email", async (req, res) => {
-    //   const result = await goalscoll.findOne({
-    //     userEmail: req.params.email,
-    //   });
-    //   res.send(result);
-    // });
+    app.get("/savings-goal/:email", async (req, res) => {
+      const result = await goalscoll.findOne({
+        userEmail: req.params.email,
+      });
+      res.send(result);
+    });
 
     // // tips
     // // অ্যাডমিন টিপস সেভ করার এপিআই
