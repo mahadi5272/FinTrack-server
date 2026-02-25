@@ -212,36 +212,36 @@ async function run() {
     });
 
     // // নির্দিষ্ট ইউজারের সব লেনদেন দেখা (সেকশন ৭.৪ ফিল্টারিংয়ের ভিত্তি)
-    // app.get("/transactions/:email", async (req, res) => {
-    //   const email = req.params.email;
-    //   const query = { userEmail: email };
-    //   const result = await transactionscoll
-    //     .find(query)
-    //     .sort({ date: -1 })
-    //     .toArray();
-    //   res.send(result);
-    // });
+    app.get("/transactions/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { userEmail: email };
+      const result = await transactionscoll
+        .find(query)
+        .sort({ date: -1 })
+        .toArray();
+      res.send(result);
+    });
     // // ট্রানজ্যাকশন এডিট/আপডেট করার এপিআই
-    // app.patch("/transactions/:id", async (req, res) => {
-    //   try {
-    //     const id = req.params.id;
-    //     const updatedData = req.body;
-    //     const filter = { _id: new ObjectId(id) };
-    //     const updateDoc = {
-    //       $set: {
-    //         amount: parseFloat(updatedData.amount),
-    //         type: updatedData.type,
-    //         category: updatedData.category,
-    //         date: updatedData.date,
-    //         note: updatedData.note,
-    //       },
-    //     };
-    //     const result = await transactionscoll.updateOne(filter, updateDoc);
-    //     res.send(result);
-    //   } catch (err) {
-    //     res.status(500).send({ message: "Update failed" });
-    //   }
-    // });
+    app.patch("/transactions/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const updatedData = req.body;
+        const filter = { _id: new ObjectId(id) };
+        const updateDoc = {
+          $set: {
+            amount: parseFloat(updatedData.amount),
+            type: updatedData.type,
+            category: updatedData.category,
+            date: updatedData.date,
+            note: updatedData.note,
+          },
+        };
+        const result = await transactionscoll.updateOne(filter, updateDoc);
+        res.send(result);
+      } catch (err) {
+        res.status(500).send({ message: "Update failed" });
+      }
+    });
     // // ইউজারের আর্থিক পরিসংখ্যান (Total Income, Expense, Balance)
     app.get("/user-stats/:email", async (req, res) => {
       try {
